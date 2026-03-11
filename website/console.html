@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Execution Console - ElastiCache Serverless Scaling Demo</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { overflow: hidden; height: 100vh; }
+
+    main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left panel - scenario picker */
+    .console-sidebar {
+      width: 300px;
+      flex-shrink: 0;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-section h2 {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .scenario-btn {
+      display: block;
+      width: 100%;
+      padding: 10px 14px;
+      margin-bottom: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .scenario-btn:hover { background: var(--bg-hover); border-color: var(--text-muted); }
+    .scenario-btn.active { border-color: var(--accent); background: rgba(99,102,241,0.08); }
+    .scenario-btn .desc {
+      display: block;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .run-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .run-btn:hover { background: var(--accent-light); }
+    .run-btn:disabled { background: var(--text-muted); cursor: not-allowed; }
+
+    .info-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      margin-bottom: 8px;
+    }
+    .info-card .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .info-card .value {
+      font-size: 14px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .info-card .value.running { color: var(--green); }
+    .info-card .value.failed { color: var(--red); }
+
+    /* Right panel - terminal */
+    .console-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .console-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .console-toolbar h2 {
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .console-toolbar .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+    .console-toolbar .dot.live { background: var(--green); animation: pulse 1.5s infinite; }
+
+    .toolbar-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .toolbar-btn {
+      padding: 5px 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .toolbar-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+    .terminal {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      background: #0a0c10;
+    }
+
+    .log-line {
+      display: flex;
+      gap: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .log-ts {
+      color: #4b5563;
+      flex-shrink: 0;
+      user-select: none;
+      min-width: 100px;
+    }
+    .log-tag {
+      flex-shrink: 0;
+      min-width: 80px;
+      user-select: none;
+    }
+    .log-msg {
+      color: #d1d5db;
+    }
+
+    .tag-info { color: #60a5fa; }
+    .tag-api { color: #a78bfa; }
+    .tag-sfn { color: #818cf8; }
+    .tag-lambda { color: #34d399; }
+    .tag-cache { color: #2dd4bf; }
+    .tag-result { color: #fbbf24; }
+    .tag-error { color: #f87171; }
+    .tag-ok { color: #4ade80; }
+
+    .log-json {
+      color: #6ee7b7;
+      margin-left: 180px;
+      display: block;
+      padding: 4px 0;
+    }
+    .log-json .json-key { color: #93c5fd; }
+    .log-json .json-str { color: #6ee7b7; }
+    .log-json .json-num { color: #fcd34d; }
+    .log-json .json-bool { color: #f9a8d4; }
+
+    .log-divider {
+      border: none;
+      border-top: 1px dashed #1e2530;
+      margin: 8px 0;
+    }
+
+    .log-phase {
+      color: #818cf8;
+      font-weight: 600;
+      padding: 6px 0 2px;
+      display: block;
+    }
+
+    .log-metric {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px 8px;
+      background: rgba(99, 102, 241, 0.12);
+      border-radius: 4px;
+      margin: 1px 2px;
+      font-size: 12px;
+    }
+    .log-metric .m-label { color: #9ca3af; }
+    .log-metric .m-value { color: #e0e7ff; font-weight: 600; }
+
+    .progress-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+    }
+    .progress-track {
+      flex: 1;
+      max-width: 300px;
+      height: 6px;
+      background: #1e2530;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+    .progress-text {
+      font-size: 12px;
+      color: #9ca3af;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .summary-box {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin: 8px 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+    }
+    .summary-item .s-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #6b7280;
+    }
+    .summary-item .s-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #4ade80;
+      font-variant-numeric: tabular-nums;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    @media (max-width: 900px) {
+      main { flex-direction: column; }
+      .console-sidebar { width: 100%; max-height: 30vh; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect width="28" height="28" rx="6" fill="#6366f1"/>
+          <path d="M8 14h12M14 8v12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <h1>ElastiCache Serverless <span class="header-subtitle">Execution Console</span></h1>
+      </div>
+    </div>
+    <div class="header-right">
+      <a href="index.html" class="nav-link">Dashboard</a>
+      <a href="architecture.html" class="nav-link">Architecture</a>
+    </div>
+  </header>
+
+  <main>
+    <aside class="console-sidebar">
+      <div class="sidebar-section">
+        <h2>Scenario</h2>
+        <button class="scenario-btn active" data-scenario="quick_test">
+          Quick Test
+          <span class="desc">60s smoke test, 2 Lambdas, 1K RPS</span>
+        </button>
+        <button class="scenario-btn" data-scenario="gradual_ramp">
+          Gradual Ramp
+          <span class="desc">30 min, 20 Lambdas, 100K RPS linear ramp</span>
+        </button>
+        <button class="scenario-btn" data-scenario="sudden_spike">
+          Sudden Spike
+          <span class="desc">5 min, 50 Lambdas, 500K RPS burst</span>
+        </button>
+        <button class="scenario-btn" data-scenario="large_payloads">
+          Large Payloads
+          <span class="desc">10 min, 10 Lambdas, 50KB values</span>
+        </button>
+        <button class="scenario-btn" data-scenario="memory_growth">
+          Memory Growth
+          <span class="desc">15 min, 20 Lambdas, 80% writes, 10KB</span>
+        </button>
+        <button class="scenario-btn" data-scenario="hot_key">
+          Hot Key
+          <span class="desc">5 min, 30 Lambdas, Zipfian distribution</span>
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <button class="run-btn" id="runBtn" onclick="runScenario()">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><polygon points="3,1 13,8 3,15"/></svg>
+          Run Scenario
+        </button>
+      </div>
+
+      <div class="sidebar-section">
+        <h2>Execution Info</h2>
+        <div class="info-card">
+          <div class="label">Status</div>
+          <div class="value" id="infoStatus">Ready</div>
+        </div>
+        <div class="info-card">
+          <div class="label">Execution Name</div>
+          <div class="value" id="infoExecName" style="font-size:11px;word-break:break-all">-</div>
+        </div>
+        <div class="info-card">
+          <div class="label">Elapsed</div>
+          <div class="value" id="infoElapsed" style="font-variant-numeric:tabular-nums">00:00</div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="console-main">
+      <div class="console-toolbar">
+        <h2>
+          <span class="dot" id="liveDot"></span>
+          Execution Trace
+        </h2>
+        <div class="toolbar-actions">
+          <button class="toolbar-btn" onclick="clearTerminal()">Clear</button>
+          <button class="toolbar-btn" onclick="copyLog()">Copy Log</button>
+        </div>
+      </div>
+      <div class="terminal" id="terminal">
+        <div class="log-line"><span class="log-ts"></span><span class="log-tag tag-info">[READY]  </span><span class="log-msg">Select a scenario and click Run to see the full execution trace.</span></div>
+        <div class="log-line"><span class="log-ts"></span><span class="log-tag tag-info">[READY]  </span><span class="log-msg">This console shows every API call, Step Functions state transition, and result aggregation.</span></div>
+        <hr class="log-divider">
+        <div class="log-line"><span class="log-ts"></span><span class="log-tag tag-info">[TRACE]  </span><span class="log-msg">Flow: Browser -> CloudFront -> API Gateway -> API Lambda -> Step Functions -> Lambda Fleet -> ElastiCache Serverless -> Aggregator -> S3 -> Dashboard</span></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+const API_BASE = '/api';
+let selectedScenario = 'quick_test';
+let isRunning = false;
+let elapsedTimer = null;
+let startTime = null;
+
+// Scenario selection
+document.querySelectorAll('.scenario-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (isRunning) return;
+    document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedScenario = btn.dataset.scenario;
+  });
+});
+
+const SCENARIO_CONFIG = {
+  quick_test:     { lambda_count: 2,  target_rps: 500,   payload_size_bytes: 1024,  duration_seconds: 60,   read_write_ratio: 0.8, key_distribution: 'uniform',    ramp_pattern: 'step',   client_count: 2, inflight_requests_limit: 500  },
+  gradual_ramp:   { lambda_count: 20, target_rps: 5000,  payload_size_bytes: 1024,  duration_seconds: 1800, read_write_ratio: 0.8, key_distribution: 'uniform',    ramp_pattern: 'linear', client_count: 3, inflight_requests_limit: 1000 },
+  sudden_spike:   { lambda_count: 50, target_rps: 10000, payload_size_bytes: 1024,  duration_seconds: 300,  read_write_ratio: 0.8, key_distribution: 'uniform',    ramp_pattern: 'spike',  client_count: 3, inflight_requests_limit: 1000 },
+  large_payloads: { lambda_count: 10, target_rps: 2000,  payload_size_bytes: 51200, duration_seconds: 600,  read_write_ratio: 0.7, key_distribution: 'uniform',    ramp_pattern: 'step',   client_count: 2, inflight_requests_limit: 1000 },
+  memory_growth:  { lambda_count: 20, target_rps: 10000, payload_size_bytes: 10240, duration_seconds: 900,  read_write_ratio: 0.2, key_distribution: 'sequential', ramp_pattern: 'step',   client_count: 3, inflight_requests_limit: 1000 },
+  hot_key:        { lambda_count: 30, target_rps: 8000,  payload_size_bytes: 1024,  duration_seconds: 300,  read_write_ratio: 0.9, key_distribution: 'zipfian',    ramp_pattern: 'step',   client_count: 5, inflight_requests_limit: 500  },
+};
+
+function ts() {
+  const now = new Date();
+  return [now.getHours(), now.getMinutes(), now.getSeconds()].map(n => String(n).padStart(2,'0')).join(':') + '.' + String(now.getMilliseconds()).padStart(3,'0');
+}
+
+function log(tag, tagClass, msg) {
+  const terminal = document.getElementById('terminal');
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-ts">${ts()} </span><span class="log-tag ${tagClass}">[${tag}]${' '.repeat(Math.max(1, 8-tag.length))}</span><span class="log-msg">${msg}</span>`;
+  terminal.appendChild(line);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+function logJson(obj, maxKeys) {
+  const terminal = document.getElementById('terminal');
+  const div = document.createElement('div');
+  div.className = 'log-json';
+  const entries = Object.entries(obj);
+  const show = maxKeys ? entries.slice(0, maxKeys) : entries;
+  const lines = show.map(([k, v]) => {
+    const valStr = typeof v === 'string' ? `<span class="json-str">"${escHtml(v)}"</span>`
+                 : typeof v === 'number' ? `<span class="json-num">${v}</span>`
+                 : typeof v === 'boolean' ? `<span class="json-bool">${v}</span>`
+                 : `<span class="json-str">${escHtml(JSON.stringify(v).substring(0, 80))}</span>`;
+    return `  <span class="json-key">"${escHtml(k)}"</span>: ${valStr}`;
+  });
+  let text = '{\n' + lines.join(',\n');
+  if (maxKeys && entries.length > maxKeys) text += `,\n  <span style="color:#6b7280">... ${entries.length - maxKeys} more fields</span>`;
+  text += '\n}';
+  div.innerHTML = text;
+  terminal.appendChild(div);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+function logDivider() {
+  const terminal = document.getElementById('terminal');
+  terminal.appendChild(document.createElement('hr')).className = 'log-divider';
+}
+
+function logPhase(text) {
+  const terminal = document.getElementById('terminal');
+  const span = document.createElement('span');
+  span.className = 'log-phase';
+  span.textContent = text;
+  terminal.appendChild(span);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+function logSummary(data) {
+  const terminal = document.getElementById('terminal');
+  const box = document.createElement('div');
+  box.className = 'summary-box';
+  for (const [label, value] of Object.entries(data)) {
+    box.innerHTML += `<div class="summary-item"><div class="s-label">${escHtml(label)}</div><div class="s-value">${escHtml(String(value))}</div></div>`;
+  }
+  terminal.appendChild(box);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatElapsed(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  return String(m).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+}
+
+function clearTerminal() {
+  document.getElementById('terminal').innerHTML = '';
+}
+
+function copyLog() {
+  const text = document.getElementById('terminal').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    log('SYS', 'tag-info', 'Log copied to clipboard.');
+  });
+}
+
+async function runScenario() {
+  if (isRunning) return;
+  isRunning = true;
+
+  const config = SCENARIO_CONFIG[selectedScenario];
+  const totalRps = config.lambda_count * config.target_rps;
+
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('liveDot').classList.add('live');
+  document.getElementById('infoStatus').textContent = 'Starting...';
+  document.getElementById('infoStatus').className = 'value running';
+
+  startTime = Date.now();
+  elapsedTimer = setInterval(() => {
+    document.getElementById('infoElapsed').textContent = formatElapsed(Date.now() - startTime);
+  }, 500);
+
+  clearTerminal();
+
+  // Phase 1: Explain what we're about to do
+  logPhase('PHASE 1: Initiating Test');
+  logDivider();
+  log('SYS', 'tag-info', `Scenario: ${selectedScenario.replace(/_/g, ' ').toUpperCase()}`);
+  log('SYS', 'tag-info', `Total target: ${totalRps.toLocaleString()} RPS across ${config.lambda_count} Lambdas`);
+  log('SYS', 'tag-info', `Payload: ${(config.payload_size_bytes / 1024).toFixed(0)} KB | Duration: ${config.duration_seconds}s | Pattern: ${config.ramp_pattern}`);
+  log('SYS', 'tag-info', `GLIDE clients per Lambda: ${config.client_count} | Inflight limit: ${config.inflight_requests_limit}`);
+  log('SYS', 'tag-info', `Read/Write ratio: ${(config.read_write_ratio * 100).toFixed(0)}% reads / ${((1 - config.read_write_ratio) * 100).toFixed(0)}% writes`);
+  logDivider();
+
+  // Phase 2: API call
+  logPhase('PHASE 2: Calling API');
+  logDivider();
+  const reqBody = { scenario: selectedScenario, config };
+  log('API', 'tag-api', `POST /api/executions`);
+  log('API', 'tag-api', `Request body:`);
+  logJson(reqBody, 4);
+
+  let executionName, executionArn;
+  try {
+    const resp = await fetch(`${API_BASE}/executions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(reqBody),
+    });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      log('ERROR', 'tag-error', `API returned ${resp.status}: ${data.error || resp.statusText}`);
+      finish(false);
+      return;
+    }
+
+    executionName = data.execution_name;
+    executionArn = data.execution_arn;
+
+    log('API', 'tag-api', `Response: ${resp.status} OK`);
+    logJson({ execution_name: executionName, execution_arn: executionArn, scenario: data.scenario }, 3);
+    document.getElementById('infoExecName').textContent = executionName;
+  } catch (e) {
+    log('ERROR', 'tag-error', `Network error: ${e.message}`);
+    finish(false);
+    return;
+  }
+
+  // Phase 3: Step Functions
+  logDivider();
+  logPhase('PHASE 3: Step Functions Execution');
+  logDivider();
+  log('SFN', 'tag-sfn', `State machine started: ecoffsite-scaling-demo`);
+  log('SFN', 'tag-sfn', `Execution: ${executionName}`);
+  log('SFN', 'tag-sfn', `State: [Choice] pre_populate? -> ${config.read_write_ratio < 1 ? 'Yes, seeding keys first' : 'No, skipping'}`);
+
+  await sleep(1500);
+  log('SFN', 'tag-sfn', `State: [BuildWorkerConfigs] generating array [0..${config.lambda_count - 1}]`);
+
+  await sleep(1000);
+  log('SFN', 'tag-sfn', `State: [GenerateLoad] Map state -> fan-out ${config.lambda_count} Lambdas (max concurrency: 200)`);
+
+  logDivider();
+  logPhase('PHASE 4: Lambda Fleet Executing');
+  logDivider();
+
+  for (let i = 0; i < Math.min(config.lambda_count, 5); i++) {
+    log('LAMBDA', 'tag-lambda', `Worker ${i} invoked: target_rps=${config.target_rps}, payload=${(config.payload_size_bytes/1024).toFixed(0)}KB, pattern=${config.ramp_pattern}`);
+  }
+  if (config.lambda_count > 5) {
+    log('LAMBDA', 'tag-lambda', `... and ${config.lambda_count - 5} more workers`);
+  }
+
+  log('CACHE', 'tag-cache', `Connecting to: ecoffsite-demo-y2t7ss.serverless.use2.cache.amazonaws.com:6379`);
+  log('CACHE', 'tag-cache', `TLS handshake + GlideClusterClient initialization (${config.client_count} clients per Lambda)`);
+  log('CACHE', 'tag-cache', `Total connections: ${config.lambda_count} Lambdas x ${config.client_count} clients = ${config.lambda_count * config.client_count} multiplexed connections`);
+
+  document.getElementById('infoStatus').textContent = 'Running';
+
+  // Phase 5: Polling
+  logDivider();
+  logPhase('PHASE 5: Polling for Completion');
+  logDivider();
+  log('SYS', 'tag-info', `Estimated duration: ${config.duration_seconds}s + overhead`);
+  log('SYS', 'tag-info', `Polling GET /api/executions/${executionName} every 5s...`);
+
+  let pollCount = 0;
+  let finalResult = null;
+
+  while (true) {
+    await sleep(5000);
+    pollCount++;
+
+    try {
+      const statusResp = await fetch(`${API_BASE}/executions/${executionName}`);
+      const statusData = await statusResp.json();
+      const elapsed = formatElapsed(Date.now() - startTime);
+
+      if (statusData.status === 'SUCCEEDED') {
+        log('API', 'tag-api', `Poll #${pollCount}: SUCCEEDED (${elapsed})`);
+        finalResult = statusData.results;
+        break;
+      } else if (statusData.status === 'FAILED' || statusData.status === 'TIMED_OUT' || statusData.status === 'ABORTED') {
+        log('ERROR', 'tag-error', `Poll #${pollCount}: ${statusData.status}`);
+        if (statusData.error) log('ERROR', 'tag-error', `Error: ${statusData.error}`);
+        if (statusData.cause) log('ERROR', 'tag-error', `Cause: ${statusData.cause}`);
+        finish(false);
+        return;
+      } else {
+        // Still running - show progress
+        const pct = Math.min(95, Math.round((Date.now() - startTime) / (config.duration_seconds * 1000 + 30000) * 100));
+        log('API', 'tag-api', `Poll #${pollCount}: RUNNING (${elapsed}) ~${pct}%`);
+
+        // Add contextual messages about what's happening
+        if (pollCount === 1) {
+          log('LAMBDA', 'tag-lambda', `Workers sending ${config.ramp_pattern === 'linear' ? 'linearly ramping' : config.ramp_pattern === 'spike' ? 'spiking' : 'constant'} traffic...`);
+          log('CACHE', 'tag-cache', `ElastiCache Serverless processing ${totalRps.toLocaleString()} target RPS...`);
+        }
+        if (pollCount === 3) {
+          log('CACHE', 'tag-cache', `Auto-scaling: initial burst headroom 25-35%, capacity doubles every ~10 min`);
+        }
+        if (pollCount === 5) {
+          log('LAMBDA', 'tag-lambda', `Workers collecting 18-bucket latency histograms per 5s window...`);
+        }
+        if (pollCount % 6 === 0) {
+          log('CACHE', 'tag-cache', `ElastiCache Serverless scaling in progress... (${elapsed} elapsed)`);
+        }
+      }
+    } catch (e) {
+      log('API', 'tag-api', `Poll #${pollCount}: network error - ${e.message}, retrying...`);
+    }
+  }
+
+  // Phase 6: Results
+  logDivider();
+  logPhase('PHASE 6: Aggregating Results');
+  logDivider();
+  log('SFN', 'tag-sfn', `State: [AggregateResults] invoking aggregator Lambda`);
+  log('SFN', 'tag-sfn', `Aggregator receives ${config.lambda_count} worker payloads`);
+  log('SFN', 'tag-sfn', `Merging latency histograms element-wise across all workers...`);
+  log('SFN', 'tag-sfn', `Computing global p50/p90/p99 from merged histogram (NOT averaging percentiles)`);
+  log('SFN', 'tag-sfn', `Estimating ECPU: success_count x ceil(payload_bytes / 1024)`);
+  log('SFN', 'tag-sfn', `Writing aggregated results to S3`);
+
+  if (finalResult) {
+    logDivider();
+    logPhase('PHASE 7: Results');
+    logDivider();
+
+    const ts_data = finalResult.time_series || [];
+    const summary = finalResult.summary || {};
+    const events = finalResult.events || [];
+
+    log('RESULT', 'tag-result', `Received ${ts_data.length} time-series data points`);
+    log('RESULT', 'tag-result', `Detected ${events.length} scaling events`);
+
+    if (ts_data.length > 0) {
+      log('RESULT', 'tag-result', `Sample data point (last window):`);
+      const last = ts_data[ts_data.length - 1];
+      logJson({
+        actual_rps: last.actual_rps,
+        p50_ms: last.p50_ms,
+        p90_ms: last.p90_ms,
+        p99_ms: last.p99_ms,
+        ecpu_demand: last.ecpu_demand,
+        throttle_pct: last.throttle_pct,
+        active_clients: last.active_clients,
+      });
+    }
+
+    // Show events
+    if (events.length > 0) {
+      logDivider();
+      log('RESULT', 'tag-result', 'Scaling events:');
+      for (const ev of events.slice(0, 10)) {
+        const evTag = ev.type === 'throttle_start' || ev.type === 'latency_spike' ? 'tag-error' : 'tag-ok';
+        log('EVENT', evTag, `[t=${ev.timestamp_s ? ev.timestamp_s - (ts_data[0]?.timestamp_s || 0) : '?'}s] ${ev.message || ev.type}`);
+      }
+      if (events.length > 10) log('EVENT', 'tag-info', `... and ${events.length - 10} more events`);
+    }
+
+    // Summary box
+    logDivider();
+    log('OK', 'tag-ok', 'Test completed successfully!');
+
+    const summaryData = {};
+    if (summary.peak_rps) summaryData['Peak RPS'] = summary.peak_rps.toLocaleString();
+    if (summary.avg_p50_ms) summaryData['Avg p50'] = summary.avg_p50_ms.toFixed(2) + ' ms';
+    if (summary.avg_p99_ms) summaryData['Avg p99'] = summary.avg_p99_ms.toFixed(2) + ' ms';
+    if (summary.peak_p99_ms) summaryData['Peak p99'] = summary.peak_p99_ms.toFixed(2) + ' ms';
+    if (summary.total_throttled !== undefined) summaryData['Total Throttled'] = summary.total_throttled.toLocaleString();
+    if (summary.total_cost_usd) summaryData['Total Cost'] = '$' + summary.total_cost_usd.toFixed(6);
+    summaryData['Data Points'] = String(ts_data.length);
+    summaryData['Duration'] = formatElapsed(Date.now() - startTime);
+
+    if (Object.keys(summaryData).length > 0) {
+      logSummary(summaryData);
+    }
+
+    log('OK', 'tag-ok', `View charts: `);
+    const link = document.createElement('a');
+    link.href = 'index.html';
+    link.textContent = 'Open Dashboard to see charts';
+    link.style.cssText = 'color:#818cf8;text-decoration:underline;margin-left:180px;display:block;padding:4px 0';
+    document.getElementById('terminal').appendChild(link);
+  }
+
+  finish(true);
+}
+
+function finish(success) {
+  isRunning = false;
+  clearInterval(elapsedTimer);
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('liveDot').classList.remove('live');
+  document.getElementById('infoStatus').textContent = success ? 'Completed' : 'Failed';
+  document.getElementById('infoStatus').className = success ? 'value running' : 'value failed';
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+  </script>
+</body>
+</html>

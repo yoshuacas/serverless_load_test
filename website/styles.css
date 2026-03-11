@@ -72,6 +72,15 @@ header {
   gap: 16px;
 }
 
+.nav-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+.nav-link:hover { color: var(--accent-light); }
+
 .status-pill {
   display: flex;
   align-items: center;
