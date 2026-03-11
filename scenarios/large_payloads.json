@@ -1,0 +1,21 @@
+{
+  "scenario": "large_payloads",
+  "description": "Step through payload sizes: 1KB → 10KB → 50KB → 100KB while holding steady RPS. Tests ECPU-per-KB scaling — a 50KB GET costs 50 ECPU, so moderate RPS can drive high ECPU demand.",
+  "config": {
+    "cache_endpoint": "${CACHE_ENDPOINT}",
+    "cache_port": 6379,
+    "lambda_count": 10,
+    "target_rps": 2000,
+    "payload_size_bytes": 51200,
+    "read_write_ratio": 0.7,
+    "key_distribution": "uniform",
+    "key_space_size": 50000,
+    "ramp_pattern": "step",
+    "duration_seconds": 600,
+    "client_count": 2,
+    "inflight_requests_limit": 1000,
+    "command_type": "get_set",
+    "report_interval_seconds": 5,
+    "pre_populate": true
+  }
+}

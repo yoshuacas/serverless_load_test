@@ -1,0 +1,21 @@
+{
+  "scenario": "gradual_ramp",
+  "description": "Linear ramp from 0 to 100K total RPS over 30 min. Tests smooth ECPU scaling — capacity should double every 10-12 min with no throttling after initial burst headroom kicks in.",
+  "config": {
+    "cache_endpoint": "${CACHE_ENDPOINT}",
+    "cache_port": 6379,
+    "lambda_count": 20,
+    "target_rps": 5000,
+    "payload_size_bytes": 1024,
+    "read_write_ratio": 0.8,
+    "key_distribution": "uniform",
+    "key_space_size": 100000,
+    "ramp_pattern": "linear",
+    "duration_seconds": 1800,
+    "client_count": 3,
+    "inflight_requests_limit": 1000,
+    "command_type": "get_set",
+    "report_interval_seconds": 5,
+    "pre_populate": true
+  }
+}

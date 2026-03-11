@@ -1,0 +1,11 @@
+node_modules/
+cdk.out/
+infra/**/*.js
+infra/**/*.d.ts
+!infra/jest.config.js
+*.png
+__pycache__/
+.pytest_cache/
+*.egg-info/
+dist/
+.env

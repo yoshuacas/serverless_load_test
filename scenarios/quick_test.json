@@ -1,0 +1,21 @@
+{
+  "scenario": "quick_test",
+  "description": "Quick 60-second smoke test with 2 Lambdas to verify end-to-end.",
+  "config": {
+    "cache_endpoint": "${CACHE_ENDPOINT}",
+    "cache_port": 6379,
+    "lambda_count": 2,
+    "target_rps": 500,
+    "payload_size_bytes": 1024,
+    "read_write_ratio": 0.8,
+    "key_distribution": "uniform",
+    "key_space_size": 10000,
+    "ramp_pattern": "step",
+    "duration_seconds": 60,
+    "client_count": 2,
+    "inflight_requests_limit": 500,
+    "command_type": "get_set",
+    "report_interval_seconds": 5,
+    "pre_populate": true
+  }
+}
