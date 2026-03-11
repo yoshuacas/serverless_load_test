@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture - ElastiCache Serverless Scaling Demo</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      overflow: auto;
+      height: auto;
+      min-height: 100vh;
+    }
+
+    .arch-page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 32px 80px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--accent-light);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 32px;
+    }
+    .back-link:hover { color: var(--accent); }
+
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
+      border: 1px solid var(--border-active);
+      border-radius: 16px;
+      padding: 48px 40px;
+      margin-bottom: 48px;
+      text-align: center;
+    }
+    .hero-banner h1 {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #818cf8, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-banner .tagline {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 700px;
+      margin: 0 auto 24px;
+      line-height: 1.6;
+    }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 24px;
+    }
+    .hero-stat {
+      text-align: center;
+    }
+    .hero-stat .num {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent-light);
+      font-variant-numeric: tabular-nums;
+    }
+    .hero-stat .label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 4px;
+    }
+
+    .section {
+      margin-bottom: 48px;
+    }
+    .section h2 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+    .section h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--text-primary);
+    }
+    .section p, .section li {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+    .section p {
+      margin-bottom: 14px;
+    }
+    .section ul, .section ol {
+      padding-left: 20px;
+      margin-bottom: 14px;
+    }
+    .section li {
+      margin-bottom: 6px;
+    }
+
+    .diagram-container {
+      background: #ffffff;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      margin: 24px 0;
+    }
+    .diagram-container img {
+      width: 100%;
+      display: block;
+    }
+    .diagram-caption {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 12px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+    }
+
+    .highlight-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .highlight-card h3 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .highlight-card .icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 768px) {
+      .two-col { grid-template-columns: 1fr; }
+      .hero-stats { flex-wrap: wrap; gap: 24px; }
+    }
+
+    .tech-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      background: var(--bg-hover);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin: 2px;
+    }
+
+    .flow-step {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .flow-step .step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .flow-step .step-body {
+      padding-top: 6px;
+    }
+    .flow-step .step-body strong {
+      color: var(--text-primary);
+    }
+
+    .callout {
+      background: rgba(99, 102, 241, 0.08);
+      border-left: 3px solid var(--accent);
+      padding: 16px 20px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin: 20px 0;
+    }
+    .callout p {
+      color: var(--text-secondary);
+      margin-bottom: 0;
+    }
+    .callout strong {
+      color: var(--accent-light);
+    }
+
+    .scenario-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+    .scenario-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: var(--bg-hover);
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    .scenario-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .scenario-table tr:last-child td {
+      border-bottom: none;
+    }
+    .scenario-table .scenario-name {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .cta-section {
+      text-align: center;
+      padding: 48px 32px;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.08));
+      border: 1px solid var(--green);
+      border-radius: 16px;
+      margin-top: 48px;
+    }
+    .cta-section h2 {
+      margin-bottom: 12px;
+    }
+    .cta-section p {
+      max-width: 600px;
+      margin: 0 auto 24px;
+    }
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: var(--green);
+      color: white;
+      border-radius: var(--radius);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 16px;
+      transition: all 0.15s ease;
+    }
+    .cta-btn:hover {
+      background: #0ea572;
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect width="28" height="28" rx="6" fill="#6366f1"/>
+          <path d="M8 14h12M14 8v12" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <h1>ElastiCache Serverless <span class="header-subtitle">Scaling Demo</span></h1>
+      </div>
+    </div>
+    <div class="header-right">
+      <a href="index.html" class="back-link" style="margin-bottom:0">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="10,2 4,8 10,14"/></svg>
+        Back to Dashboard
+      </a>
+    </div>
+  </header>
+
+  <div class="arch-page">
+
+    <!-- Hero -->
+    <div class="hero-banner">
+      <h1>ElastiCache Serverless Just Works</h1>
+      <p class="tagline">
+        We built a fully self-service demo that lets anyone throw real traffic at ElastiCache Serverless
+        and watch it auto-scale in real time. No provisioning. No capacity planning. No ops tickets. Just push a button.
+      </p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="num">500K</div>
+          <div class="label">Peak RPS</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">&lt; 3ms</div>
+          <div class="label">p50 Latency</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">100%</div>
+          <div class="label">Serverless</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">6</div>
+          <div class="label">Scenarios</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num">0</div>
+          <div class="label">Servers to manage</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- What is this -->
+    <div class="section">
+      <h2>What is this?</h2>
+      <p>
+        This is a <strong style="color:var(--text-primary)">live, interactive load-testing platform</strong> that demonstrates
+        ElastiCache Serverless auto-scaling across all three dimensions: <strong style="color:var(--accent-light)">ECPU (compute)</strong>,
+        <strong style="color:var(--green)">memory</strong>, and <strong style="color:var(--cyan)">network bandwidth</strong>.
+      </p>
+      <p>
+        Customers visit a hosted dashboard, pick a scenario, optionally tweak parameters, and click
+        <strong style="color:var(--text-primary)">"Run Scenario"</strong>. Behind the scenes, a fleet of Lambda functions
+        fires real Valkey commands at a live ElastiCache Serverless cache using the official
+        <strong style="color:var(--text-primary)">Valkey GLIDE</strong> client. Results are aggregated and rendered as
+        interactive charts, right in the browser.
+      </p>
+      <p>
+        No CloudFormation templates to deploy. No SSH into EC2. No Redis benchmarking CLI to wrestle with.
+        Just a URL and a button.
+      </p>
+    </div>
+
+    <!-- Architecture Diagram -->
+    <div class="section">
+      <h2>Architecture</h2>
+      <p>
+        The entire system is serverless, deployed via CDK, and runs in a single region (us-east-2).
+        Here's how the pieces fit together:
+      </p>
+      <div class="diagram-container">
+        <img src="architecture-diagram.png" alt="ElastiCache Serverless Scaling Demo Architecture Diagram">
+        <div class="diagram-caption">
+          Blue = Control Plane &nbsp;&bull;&nbsp; Green = Data Plane &nbsp;&bull;&nbsp; Orange = Metrics Pipeline
+        </div>
+      </div>
+    </div>
+
+    <!-- How It Works -->
+    <div class="section">
+      <h2>How it works (step by step)</h2>
+
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <p><strong>Customer clicks "Run Scenario"</strong> on the dashboard. The browser POSTs to
+          <code style="color:var(--accent-light)">/api/executions</code> with the scenario name and any config overrides.
+          CloudFront routes this to API Gateway, which invokes the API Lambda.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <p><strong>API Lambda starts a Step Functions execution.</strong> The state machine receives the scenario config,
+          optionally pre-populates keys, then fans out to N Lambda workers using a Map state
+          (up to 200 concurrent).</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <p><strong>Lambda fleet hammers ElastiCache Serverless.</strong> Each Lambda creates
+          <code style="color:var(--accent-light)">GlideClusterClient</code> instances (Valkey GLIDE with a Rust core)
+          and fires GET/SET commands at the configured RPS using async pipelines. Each client uses a single multiplexed
+          TCP connection per cluster node &mdash; no connection pool needed.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <p><strong>ElastiCache Serverless auto-scales transparently.</strong> As demand increases, it provides
+          25-35% burst headroom instantly and doubles capacity every 10-12 minutes under sustained load.
+          The Lambdas track every request's latency in 18-bucket histograms (5-second windows) and count
+          successes, throttles, errors, and bytes.</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <p><strong>Aggregator Lambda merges all N worker payloads.</strong> It groups snapshots by timestamp,
+          sums scalar metrics, and &mdash; critically &mdash; <em>merges latency histograms element-wise</em> to compute
+          mathematically correct global p50/p90/p99. (You cannot average percentiles. This is the right way.)</p>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <p><strong>Dashboard renders the results.</strong> The browser polls for completion, then renders
+          6 interactive charts (latency, throughput, ECPU, throttle, memory, connections), 6 KPI cards,
+          and a scaling events timeline &mdash; all from real data.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Why This is Cool -->
+    <div class="section">
+      <h2>Why this is a big deal</h2>
+
+      <div class="two-col">
+        <div class="highlight-card">
+          <h3><span class="icon" style="background:rgba(99,102,241,0.15)">&#9889;</span> Zero capacity planning</h3>
+          <p>The whole point of Serverless is "don't think about capacity." This demo proves it.
+          Throw 500K RPS at it with zero warning. Watch it handle it. Show that to a customer who's
+          scared to leave provisioned mode.</p>
+        </div>
+
+        <div class="highlight-card">
+          <h3><span class="icon" style="background:rgba(16,185,129,0.15)">&#128200;</span> Real traffic, real numbers</h3>
+          <p>This isn't a slide deck with made-up graphs. Every data point comes from actual Valkey commands
+          hitting a real ElastiCache Serverless endpoint. Sub-3ms p50 latency at scale. Customers can
+          verify it themselves.</p>
+        </div>
+
+        <div class="highlight-card">
+          <h3><span class="icon" style="background:rgba(139,92,246,0.15)">&#128295;</span> Self-service for customers</h3>
+          <p>Share the URL. Customer picks a scenario. Customer clicks Run. Customer sees results.
+          No SA involvement needed. No "let me set up a POC environment." The demo IS the POC.</p>
+        </div>
+
+        <div class="highlight-card">
+          <h3><span class="icon" style="background:rgba(245,158,11,0.15)">&#128176;</span> Cost transparency built-in</h3>
+          <p>Every test shows the estimated cost in real time. $0.0034 per million ECPU + $0.125/GB-hr storage.
+          Customers see exactly what they'd pay. No surprises. The quick_test costs &lt; $0.001.</p>
+        </div>
+
+        <div class="highlight-card">
+          <h3><span class="icon" style="background:rgba(6,182,212,0.15)">&#127919;</span> Demonstrates all scaling dimensions</h3>
+          <p>ECPU scaling (gradual ramp, sudden spike), memory scaling (write-heavy sequential keys),
+          ECPU-per-KB amplification (large payloads), and single-slot limits (hot key Zipfian).
+          Every edge case in one platform.</p>
+        </div>
+
+        <div class="highlight-card">
+          <h3><span class="icon" style="background:rgba(239,68,68,0.15)">&#128640;</span> 100% serverless, 100% CDK</h3>
+          <p>The entire infrastructure &mdash; VPC, cache, Lambdas, Step Functions, API Gateway, CloudFront,
+          S3 &mdash; is defined in 6 CDK stacks. One <code>cdk deploy --all</code> and you're live.
+          One <code>cdk destroy --all</code> and it's gone. No pets, no snowflakes.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tech Deep Dive -->
+    <div class="section">
+      <h2>Tech stack</h2>
+      <p>
+        <span class="tech-badge">ElastiCache Serverless</span>
+        <span class="tech-badge">Valkey 8.0</span>
+        <span class="tech-badge">Valkey GLIDE (Rust core)</span>
+        <span class="tech-badge">AWS Lambda (ARM64)</span>
+        <span class="tech-badge">Step Functions</span>
+        <span class="tech-badge">API Gateway</span>
+        <span class="tech-badge">CloudFront</span>
+        <span class="tech-badge">S3</span>
+        <span class="tech-badge">CDK v2 (TypeScript)</span>
+        <span class="tech-badge">Python 3.12</span>
+        <span class="tech-badge">Docker (Graviton)</span>
+        <span class="tech-badge">Chart.js</span>
+      </p>
+
+      <div class="callout">
+        <p>
+          <strong>Why Valkey GLIDE?</strong> It's the official Valkey client with a Rust-powered core.
+          Each <code>GlideClusterClient</code> uses a single multiplexed TCP connection per cluster node,
+          pipelining thousands of concurrent commands without a connection pool. This means
+          <strong>50 Lambdas &times; 3 clients = 150 multiplexed connections</strong> can drive 500K+ RPS.
+          Traditional connection-per-request clients would need thousands of connections for the same throughput.
+        </p>
+      </div>
+
+      <h3>Metrics that don't lie</h3>
+      <p>
+        All metrics are <strong style="color:var(--text-primary)">client-side only</strong>. No CloudWatch dependency.
+        Each Lambda tracks round-trip latency in an 18-bucket histogram per 5-second window (144 bytes per window).
+        The aggregator merges histograms by element-wise sum and walks the merged histogram for global percentiles.
+        This is the only mathematically correct way to compute p50/p90/p99 across distributed workers.
+      </p>
+
+      <h3>ECPU model</h3>
+      <p>
+        ElastiCache Serverless charges by ECPU: <strong style="color:var(--text-primary)">1 ECPU = 1 KB transferred</strong>.
+        A 3.2 KB GET costs 3.2 ECPU. The dashboard computes this as
+        <code style="color:var(--accent-light)">success_count &times; ceil(payload_bytes / 1024)</code> and shows
+        cumulative cost per window. The large_payloads scenario (50 KB values) makes this ECPU amplification
+        viscerally obvious.
+      </p>
+    </div>
+
+    <!-- Scenarios -->
+    <div class="section">
+      <h2>Test scenarios</h2>
+      <p>Six pre-built scenarios, each designed to stress a specific scaling dimension:</p>
+
+      <table class="scenario-table">
+        <thead>
+          <tr>
+            <th>Scenario</th>
+            <th>Total RPS</th>
+            <th>Payload</th>
+            <th>Duration</th>
+            <th>Lambdas</th>
+            <th>What it proves</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="scenario-name">Gradual Ramp</td>
+            <td>100K</td>
+            <td>1 KB</td>
+            <td>30 min</td>
+            <td>20</td>
+            <td>Smooth ECPU scaling under linear load increase</td>
+          </tr>
+          <tr>
+            <td class="scenario-name">Sudden Spike</td>
+            <td>500K</td>
+            <td>1 KB</td>
+            <td>5 min</td>
+            <td>50</td>
+            <td>Burst capacity &amp; throttle recovery under shock load</td>
+          </tr>
+          <tr>
+            <td class="scenario-name">Large Payloads</td>
+            <td>20K</td>
+            <td>50 KB</td>
+            <td>10 min</td>
+            <td>10</td>
+            <td>ECPU-per-KB cost amplification with big values</td>
+          </tr>
+          <tr>
+            <td class="scenario-name">Memory Growth</td>
+            <td>200K</td>
+            <td>10 KB</td>
+            <td>15 min</td>
+            <td>20</td>
+            <td>Storage auto-scaling with 80% writes</td>
+          </tr>
+          <tr>
+            <td class="scenario-name">Hot Key</td>
+            <td>240K</td>
+            <td>1 KB</td>
+            <td>5 min</td>
+            <td>30</td>
+            <td>Zipfian hot-key pressure on single slot</td>
+          </tr>
+          <tr>
+            <td class="scenario-name">Quick Test</td>
+            <td>1K</td>
+            <td>1 KB</td>
+            <td>1 min</td>
+            <td>2</td>
+            <td>60-second smoke test to verify everything works</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        Every parameter is tunable from the dashboard: RPS, payload size, read/write ratio, key distribution,
+        ramp pattern, Lambda count, GLIDE client count, inflight command limit, and command type.
+        Customers can build their own scenario by tweaking the config panel.
+      </p>
+    </div>
+
+    <!-- How to deploy -->
+    <div class="section">
+      <h2>Deploy your own in 5 minutes</h2>
+      <p>The entire stack is infrastructure-as-code. Clone the repo, deploy, done:</p>
+      <div class="highlight-card" style="background:var(--bg-surface); font-family: 'SF Mono', 'Fira Code', monospace; font-size: 14px; line-height: 2;">
+        <p style="color:var(--text-muted); margin-bottom:8px"># Prerequisites: AWS CLI, Node.js 18+, Docker running</p>
+        <p style="color:var(--green); margin-bottom:0">
+          git clone &lt;repo&gt; && cd serverless_load_test<br>
+          cd infra && npm install<br>
+          npx cdk deploy --all --require-approval never<br>
+          <span style="color:var(--text-muted)"># That's it. CloudFront URL in the output.</span>
+        </p>
+      </div>
+      <p>
+        6 CDK stacks deploy in dependency order: VPC &rarr; Cache &rarr; Storage &rarr; Lambda &rarr; Step Functions &rarr; Website.
+        Tear down with <code style="color:var(--accent-light)">npx cdk destroy --all</code>.
+      </p>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <h2>Try it right now</h2>
+      <p>The demo is live. Click below, pick a scenario, hit Run. See ElastiCache Serverless scale before your eyes.</p>
+      <a href="index.html" class="cta-btn">
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><polygon points="3,1 13,8 3,15"/></svg>
+        Launch the Dashboard
+      </a>
+    </div>
+
+  </div>
+</body>
+</html>

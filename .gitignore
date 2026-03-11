@@ -4,6 +4,7 @@ infra/**/*.js
 infra/**/*.d.ts
 !infra/jest.config.js
 *.png
+!website/architecture-diagram.png
 __pycache__/
 .pytest_cache/
 *.egg-info/
