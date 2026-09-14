@@ -1,9 +1,12 @@
-"""API Lambda: bridges the dashboard to Step Functions and S3.
+"""API Lambda: bridges the dashboard to Step Functions, S3, and live data.
 
 Routes:
   POST /api/executions          — start a new test
   GET  /api/executions/{id}     — check status / get results
   GET  /api/scenarios           — list available scenarios
+  GET  /api/results/{scenario}  — get latest results from S3
+  GET  /api/current             — get current active execution
+  GET  /api/live/{id}           — get live progress from ElastiCache (via live Lambda)
 """
 
 import json
@@ -16,9 +19,11 @@ SFN_ARN = os.environ["STATE_MACHINE_ARN"]
 RESULTS_BUCKET = os.environ["RESULTS_BUCKET"]
 CACHE_ENDPOINT = os.environ["CACHE_ENDPOINT"]
 CACHE_PORT = int(os.environ.get("CACHE_PORT", "6379"))
+LIVE_FUNCTION_NAME = os.environ.get("LIVE_FUNCTION_NAME", "")
 
 sfn = boto3.client("stepfunctions")
 s3 = boto3.client("s3")
+lambda_client = boto3.client("lambda")
 
 SCENARIOS = {
     "gradual_ramp": {
@@ -95,6 +100,11 @@ def handler(event, context):
         elif method == "GET" and path.startswith("/api/results/"):
             scenario = path.split("/api/results/")[1]
             return get_latest_result(scenario)
+        elif method == "GET" and path == "/api/current":
+            return get_current_execution()
+        elif method == "GET" and path.startswith("/api/live/"):
+            execution_name = path.split("/api/live/")[1]
+            return get_live_data(execution_name)
         else:
             return respond(404, {"error": f"Not found: {method} {path}"})
     except Exception as e:
@@ -123,6 +133,7 @@ def start_execution(event):
     sfn_input = {
         "scenario": scenario_name,
         "config": config,
+        "execution_name": execution_name,
     }
 
     result = sfn.start_execution(
@@ -130,6 +141,25 @@ def start_execution(event):
         name=execution_name,
         input=json.dumps(sfn_input),
     )
+
+    # Write current execution info to S3
+    current_exec = {
+        "execution_name": execution_name,
+        "execution_arn": result["executionArn"],
+        "scenario": scenario_name,
+        "config": config,
+        "started_at": time.time(),
+        "status": "RUNNING",
+    }
+    try:
+        s3.put_object(
+            Bucket=RESULTS_BUCKET,
+            Key="current_execution.json",
+            Body=json.dumps(current_exec),
+            ContentType="application/json",
+        )
+    except Exception:
+        pass  # Non-critical
 
     return respond(200, {
         "execution_name": execution_name,
@@ -157,6 +187,17 @@ def get_execution(execution_name):
         output = json.loads(result.get("output", "{}"))
         # The aggregated results are nested under 'aggregated'
         response["results"] = output.get("aggregated", output)
+
+        # Update current execution status in S3
+        try:
+            s3.put_object(
+                Bucket=RESULTS_BUCKET,
+                Key="current_execution.json",
+                Body=json.dumps({"execution_name": execution_name, "status": "SUCCEEDED"}),
+                ContentType="application/json",
+            )
+        except Exception:
+            pass
     elif status in ("FAILED", "TIMED_OUT", "ABORTED"):
         response["error"] = result.get("error", "Unknown")
         response["cause"] = result.get("cause", "")
@@ -165,7 +206,6 @@ def get_execution(execution_name):
 
 
 def get_latest_result(scenario):
-    # List objects under results/<scenario>/ and return the most recent
     prefix = f"results/{scenario}/"
     resp = s3.list_objects_v2(Bucket=RESULTS_BUCKET, Prefix=prefix, MaxKeys=10)
     contents = resp.get("Contents", [])
@@ -173,12 +213,40 @@ def get_latest_result(scenario):
     if not contents:
         return respond(404, {"error": f"No results for scenario: {scenario}"})
 
-    # Get the latest by LastModified
     latest = max(contents, key=lambda o: o["LastModified"])
     obj = s3.get_object(Bucket=RESULTS_BUCKET, Key=latest["Key"])
     data = json.loads(obj["Body"].read())
 
     return respond(200, data)
+
+
+def get_current_execution():
+    """Return the current active execution info from S3."""
+    try:
+        obj = s3.get_object(Bucket=RESULTS_BUCKET, Key="current_execution.json")
+        data = json.loads(obj["Body"].read())
+        return respond(200, data)
+    except s3.exceptions.NoSuchKey:
+        return respond(404, {"error": "No active execution"})
+    except Exception as e:
+        return respond(404, {"error": str(e)})
+
+
+def get_live_data(execution_name):
+    """Get live progress data by invoking the live-reader Lambda."""
+    if not LIVE_FUNCTION_NAME:
+        return respond(503, {"error": "Live data not configured"})
+
+    try:
+        result = lambda_client.invoke(
+            FunctionName=LIVE_FUNCTION_NAME,
+            InvocationType="RequestResponse",
+            Payload=json.dumps({"execution_name": execution_name}),
+        )
+        payload = json.loads(result["Payload"].read())
+        return respond(200, payload)
+    except Exception as e:
+        return respond(500, {"error": f"Live data error: {str(e)}"})
 
 
 def respond(status_code, body):

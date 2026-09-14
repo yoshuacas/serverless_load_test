@@ -17,6 +17,7 @@ export interface LambdaStackProps extends cdk.StackProps {
 export class LambdaStack extends cdk.Stack {
   public readonly loadGeneratorFn: lambda.IFunction;
   public readonly aggregatorFn: lambda.IFunction;
+  public readonly liveReaderFn: lambda.IFunction;
 
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
     super(scope, id, props);
@@ -71,12 +72,36 @@ export class LambdaStack extends cdk.Stack {
     // Grant aggregator write access to results bucket
     props.resultsBucket.grantWrite(this.aggregatorFn);
 
+    // --- Live Reader Lambda ---
+    // Reads live progress data from ElastiCache. Uses redis-py (pure Python).
+    // VPC-attached to reach the cache.
+    this.liveReaderFn = new lambda.Function(this, "LiveReaderFn", {
+      functionName: "ecoffsite-live",
+      runtime: lambda.Runtime.PYTHON_3_12,
+      handler: "handler.handler",
+      code: lambda.Code.fromAsset(
+        path.join(__dirname, "../../lambda/live")
+      ),
+      memorySize: 256,
+      timeout: cdk.Duration.seconds(15),
+      vpc: props.vpc,
+      vpcSubnets: privateSubnets,
+      securityGroups: [props.lambdaSecurityGroup],
+      environment: {
+        CACHE_ENDPOINT: props.cacheEndpoint,
+        CACHE_PORT: String(props.cachePort),
+      },
+    });
+
     // Outputs
     new cdk.CfnOutput(this, "LoadGeneratorFnArn", {
       value: this.loadGeneratorFn.functionArn,
     });
     new cdk.CfnOutput(this, "AggregatorFnArn", {
       value: this.aggregatorFn.functionArn,
+    });
+    new cdk.CfnOutput(this, "LiveReaderFnArn", {
+      value: this.liveReaderFn.functionArn,
     });
   }
 }

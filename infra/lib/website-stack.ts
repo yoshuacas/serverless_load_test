@@ -15,6 +15,7 @@ export interface WebsiteStackProps extends cdk.StackProps {
   resultsBucket: s3.IBucket;
   cacheEndpoint: string;
   cachePort: number;
+  liveReaderFn: lambda.IFunction;
 }
 
 export class WebsiteStack extends cdk.Stack {
@@ -43,6 +44,7 @@ export class WebsiteStack extends cdk.Stack {
         RESULTS_BUCKET: props.resultsBucket.bucketName,
         CACHE_ENDPOINT: props.cacheEndpoint,
         CACHE_PORT: String(props.cachePort),
+        LIVE_FUNCTION_NAME: props.liveReaderFn.functionName,
       },
     });
 
@@ -50,6 +52,8 @@ export class WebsiteStack extends cdk.Stack {
     props.stateMachine.grantStartExecution(apiFn);
     props.stateMachine.grantRead(apiFn);
     props.resultsBucket.grantRead(apiFn);
+    props.resultsBucket.grantWrite(apiFn);
+    props.liveReaderFn.grantInvoke(apiFn);
 
     // Also need sfn:DescribeExecution
     apiFn.addToRolePolicy(
@@ -93,6 +97,15 @@ export class WebsiteStack extends cdk.Stack {
     const results = apiResource.addResource("results");
     const resultByScenario = results.addResource("{scenario}");
     resultByScenario.addMethod("GET", apiIntegration);
+
+    // GET /api/current
+    const current = apiResource.addResource("current");
+    current.addMethod("GET", apiIntegration);
+
+    // GET /api/live/{id}
+    const live = apiResource.addResource("live");
+    const liveById = live.addResource("{id}");
+    liveById.addMethod("GET", apiIntegration);
 
     // --- CloudFront Distribution ---
     const distribution = new cloudfront.Distribution(this, "Distribution", {

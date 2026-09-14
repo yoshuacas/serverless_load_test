@@ -48,6 +48,7 @@ new WebsiteStack(app, "EcoffsiteWebsite", {
   resultsBucket: storage.resultsBucket,
   cacheEndpoint: cache.cacheEndpoint,
   cachePort: cache.cachePort,
+  liveReaderFn: lambdas.liveReaderFn,
 });
 
 app.synth();

@@ -511,6 +511,8 @@ const API_BASE = '/api';
 
 // === Start a REAL test via the API ===
 let pollTimer = null;
+let livePollTimer = null;
+let currentExecutionName = null;
 
 async function startDemo() {
   if (running) return;
@@ -565,6 +567,17 @@ async function startDemo() {
     }
 
     const executionName = data.execution_name;
+    currentExecutionName = executionName;
+
+    // Save to localStorage for Console page
+    localStorage.setItem('ecoffsite_execution', JSON.stringify({
+      execution_name: executionName,
+      scenario: selectedScenario,
+      config: configOverrides,
+      started_at: Date.now(),
+      status: 'RUNNING',
+    }));
+
     addEvent('info', `Execution started: ${executionName}`);
     addEvent('info', `Waiting for ${configOverrides.lambda_count} Lambdas to complete...`);
 
@@ -576,6 +589,62 @@ async function startDemo() {
       document.getElementById('elapsed').textContent = formatTime(elapsed);
     }, 500);
 
+    // Start live polling for real-time chart updates
+    let liveTickCount = 0;
+    livePollTimer = setInterval(async () => {
+      try {
+        const liveResp = await fetch(`${API_BASE}/live/${executionName}`);
+        if (!liveResp.ok) return;
+        const liveData = await liveResp.json();
+        const agg = liveData.aggregate;
+        if (!agg || !agg.actual_rps) return;
+
+        liveTickCount++;
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+
+        // Push live data to charts
+        const payloadKb = Math.max(1, Math.ceil((configOverrides.payload_size_bytes || 1024) / 1024));
+        const ecpuCapacityEstimate = agg.ecpu_demand > 0
+          ? Math.round(agg.ecpu_demand / Math.max(0.5, 1 - (agg.throttle_pct || 0) / 100))
+          : lastEcpuCapacity;
+        lastEcpuCapacity = ecpuCapacityEstimate;
+
+        pushTickToCharts(elapsed, {
+          actualRps: agg.actual_rps,
+          targetRps: configOverrides.target_rps * configOverrides.lambda_count,
+          p50: agg.p50_ms || 0,
+          p90: agg.p90_ms || 0,
+          p99: agg.p99_ms || 0,
+          ecpuDemand: agg.ecpu_demand || 0,
+          ecpuCapacity: ecpuCapacityEstimate,
+          throttled: agg.throttle_pct || 0,
+          memory: (agg.bytes_written || 0) / (1024 * 1024 * 1024),
+          activeClients: agg.active_clients || 0,
+        });
+
+        totalCost += (agg.ecpu_demand || 0) * 0.0000000034 * 5; // 5s window
+
+        allCharts.forEach(c => c.update('none'));
+        updateKpis({
+          actualRps: agg.actual_rps,
+          targetRps: configOverrides.target_rps * configOverrides.lambda_count,
+          p50: agg.p50_ms || 0,
+          p90: agg.p90_ms || 0,
+          p99: agg.p99_ms || 0,
+          ecpuDemand: agg.ecpu_demand || 0,
+          ecpuCapacity: ecpuCapacityEstimate,
+          throttled: agg.throttle_pct || 0,
+          memory: (agg.bytes_written || 0) / (1024 * 1024 * 1024),
+          cost: totalCost,
+        }, elapsed);
+
+        // Log workers reporting
+        if (liveTickCount === 1 || liveTickCount % 6 === 0) {
+          addEvent('info', `Live: ${liveData.workers_reporting}/${liveData.lambda_count} workers | ${agg.actual_rps.toLocaleString()} RPS | p50=${agg.p50_ms}ms`);
+        }
+      } catch (e) { /* live poll failed, non-critical */ }
+    }, 5000);
+
     // Poll for completion
     pollTimer = setInterval(async () => {
       try {
@@ -585,6 +654,18 @@ async function startDemo() {
         if (statusData.status === 'SUCCEEDED') {
           clearInterval(pollTimer);
           pollTimer = null;
+          clearInterval(livePollTimer);
+          livePollTimer = null;
+
+          // Update localStorage
+          localStorage.setItem('ecoffsite_execution', JSON.stringify({
+            execution_name: executionName,
+            scenario: selectedScenario,
+            config: configOverrides,
+            started_at: startTime,
+            status: 'SUCCEEDED',
+          }));
+
           addEvent('success', 'Execution succeeded! Loading results...');
           if (statusData.results) {
             loadRealResults(statusData.results);
@@ -593,6 +674,15 @@ async function startDemo() {
         } else if (statusData.status === 'FAILED' || statusData.status === 'TIMED_OUT' || statusData.status === 'ABORTED') {
           clearInterval(pollTimer);
           pollTimer = null;
+          clearInterval(livePollTimer);
+          livePollTimer = null;
+
+          localStorage.setItem('ecoffsite_execution', JSON.stringify({
+            execution_name: executionName,
+            scenario: selectedScenario,
+            status: statusData.status,
+          }));
+
           addEvent('warn', `Execution ${statusData.status}: ${statusData.error || ''}`);
           stopDemo();
         }
@@ -613,6 +703,7 @@ function stopDemo() {
   clearInterval(timerInterval);
   clearInterval(tickInterval);
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  if (livePollTimer) { clearInterval(livePollTimer); livePollTimer = null; }
 
   document.getElementById('btnRun').disabled = false;
   document.getElementById('btnStop').disabled = true;

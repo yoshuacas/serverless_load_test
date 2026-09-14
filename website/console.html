@@ -14,7 +14,7 @@
       overflow: hidden;
     }
 
-    /* Left panel - scenario picker */
+    /* Left panel - execution info */
     .console-sidebar {
       width: 300px;
       flex-shrink: 0;
@@ -38,52 +38,6 @@
       margin-bottom: 12px;
     }
 
-    .scenario-btn {
-      display: block;
-      width: 100%;
-      padding: 10px 14px;
-      margin-bottom: 6px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      color: var(--text-primary);
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 600;
-      text-align: left;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .scenario-btn:hover { background: var(--bg-hover); border-color: var(--text-muted); }
-    .scenario-btn.active { border-color: var(--accent); background: rgba(99,102,241,0.08); }
-    .scenario-btn .desc {
-      display: block;
-      font-size: 11px;
-      font-weight: 400;
-      color: var(--text-secondary);
-      margin-top: 2px;
-    }
-
-    .run-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      width: 100%;
-      padding: 12px;
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: var(--radius-sm);
-      font-size: 14px;
-      font-weight: 700;
-      font-family: inherit;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .run-btn:hover { background: var(--accent-light); }
-    .run-btn:disabled { background: var(--text-muted); cursor: not-allowed; }
-
     .info-card {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -105,6 +59,51 @@
     }
     .info-card .value.running { color: var(--green); }
     .info-card .value.failed { color: var(--red); }
+    .info-card .value.idle { color: var(--text-muted); }
+
+    .live-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .live-metric {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+    }
+    .live-metric .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    .live-metric .value {
+      font-size: 16px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-primary);
+    }
+
+    .no-execution {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 40px;
+    }
+    .no-execution svg { margin-bottom: 16px; opacity: 0.3; }
+    .no-execution p { font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+    .no-execution a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .no-execution a:hover { text-decoration: underline; }
 
     /* Right panel - terminal */
     .console-main {
@@ -194,17 +193,6 @@
     .tag-error { color: #f87171; }
     .tag-ok { color: #4ade80; }
 
-    .log-json {
-      color: #6ee7b7;
-      margin-left: 180px;
-      display: block;
-      padding: 4px 0;
-    }
-    .log-json .json-key { color: #93c5fd; }
-    .log-json .json-str { color: #6ee7b7; }
-    .log-json .json-num { color: #fcd34d; }
-    .log-json .json-bool { color: #f9a8d4; }
-
     .log-divider {
       border: none;
       border-top: 1px dashed #1e2530;
@@ -216,45 +204,6 @@
       font-weight: 600;
       padding: 6px 0 2px;
       display: block;
-    }
-
-    .log-metric {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 1px 8px;
-      background: rgba(99, 102, 241, 0.12);
-      border-radius: 4px;
-      margin: 1px 2px;
-      font-size: 12px;
-    }
-    .log-metric .m-label { color: #9ca3af; }
-    .log-metric .m-value { color: #e0e7ff; font-weight: 600; }
-
-    .progress-bar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 6px 0;
-    }
-    .progress-track {
-      flex: 1;
-      max-width: 300px;
-      height: 6px;
-      background: #1e2530;
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      background: var(--accent);
-      border-radius: 3px;
-      transition: width 0.3s ease;
-    }
-    .progress-text {
-      font-size: 12px;
-      color: #9ca3af;
-      font-variant-numeric: tabular-nums;
     }
 
     .summary-box {
@@ -311,45 +260,14 @@
   <main>
     <aside class="console-sidebar">
       <div class="sidebar-section">
-        <h2>Scenario</h2>
-        <button class="scenario-btn active" data-scenario="quick_test">
-          Quick Test
-          <span class="desc">60s smoke test, 2 Lambdas, 1K RPS</span>
-        </button>
-        <button class="scenario-btn" data-scenario="gradual_ramp">
-          Gradual Ramp
-          <span class="desc">30 min, 20 Lambdas, 100K RPS linear ramp</span>
-        </button>
-        <button class="scenario-btn" data-scenario="sudden_spike">
-          Sudden Spike
-          <span class="desc">5 min, 50 Lambdas, 500K RPS burst</span>
-        </button>
-        <button class="scenario-btn" data-scenario="large_payloads">
-          Large Payloads
-          <span class="desc">10 min, 10 Lambdas, 50KB values</span>
-        </button>
-        <button class="scenario-btn" data-scenario="memory_growth">
-          Memory Growth
-          <span class="desc">15 min, 20 Lambdas, 80% writes, 10KB</span>
-        </button>
-        <button class="scenario-btn" data-scenario="hot_key">
-          Hot Key
-          <span class="desc">5 min, 30 Lambdas, Zipfian distribution</span>
-        </button>
-      </div>
-
-      <div class="sidebar-section">
-        <button class="run-btn" id="runBtn" onclick="runScenario()">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><polygon points="3,1 13,8 3,15"/></svg>
-          Run Scenario
-        </button>
-      </div>
-
-      <div class="sidebar-section">
         <h2>Execution Info</h2>
         <div class="info-card">
           <div class="label">Status</div>
-          <div class="value" id="infoStatus">Ready</div>
+          <div class="value idle" id="infoStatus">No execution</div>
+        </div>
+        <div class="info-card">
+          <div class="label">Scenario</div>
+          <div class="value" id="infoScenario">-</div>
         </div>
         <div class="info-card">
           <div class="label">Execution Name</div>
@@ -359,6 +277,43 @@
           <div class="label">Elapsed</div>
           <div class="value" id="infoElapsed" style="font-variant-numeric:tabular-nums">00:00</div>
         </div>
+      </div>
+
+      <div class="sidebar-section" id="liveMetricsSection" style="display:none">
+        <h2>Live Metrics</h2>
+        <div class="live-metrics">
+          <div class="live-metric">
+            <div class="label">RPS</div>
+            <div class="value" id="liveRps">-</div>
+          </div>
+          <div class="live-metric">
+            <div class="label">Workers</div>
+            <div class="value" id="liveWorkers">-</div>
+          </div>
+          <div class="live-metric">
+            <div class="label">p50</div>
+            <div class="value" id="liveP50">-</div>
+          </div>
+          <div class="live-metric">
+            <div class="label">p99</div>
+            <div class="value" id="liveP99">-</div>
+          </div>
+          <div class="live-metric">
+            <div class="label">Throttle</div>
+            <div class="value" id="liveThrottle">-</div>
+          </div>
+          <div class="live-metric">
+            <div class="label">Clients</div>
+            <div class="value" id="liveClients">-</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <p style="font-size:12px;color:var(--text-muted);line-height:1.5;">
+          Start tests from the <a href="index.html" style="color:var(--accent)">Dashboard</a>.
+          This console shows live execution traces.
+        </p>
       </div>
     </aside>
 
@@ -374,72 +329,57 @@
         </div>
       </div>
       <div class="terminal" id="terminal">
-        <div class="log-line"><span class="log-ts"></span><span class="log-tag tag-info">[READY]  </span><span class="log-msg">Select a scenario and click Run to see the full execution trace.</span></div>
-        <div class="log-line"><span class="log-ts"></span><span class="log-tag tag-info">[READY]  </span><span class="log-msg">This console shows every API call, Step Functions state transition, and result aggregation.</span></div>
-        <hr class="log-divider">
-        <div class="log-line"><span class="log-ts"></span><span class="log-tag tag-info">[TRACE]  </span><span class="log-msg">Flow: Browser -> CloudFront -> API Gateway -> API Lambda -> Step Functions -> Lambda Fleet -> ElastiCache Serverless -> Aggregator -> S3 -> Dashboard</span></div>
+        <div id="noExecution" class="no-execution">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+          <p>No active execution.<br>Start a test from the <a href="index.html">Dashboard</a> to see live traces here.</p>
+        </div>
       </div>
     </div>
   </main>
 
   <script>
 const API_BASE = '/api';
-let selectedScenario = 'quick_test';
-let isRunning = false;
+let isPolling = false;
+let livePollTimer = null;
+let statusPollTimer = null;
 let elapsedTimer = null;
-let startTime = null;
-
-// Scenario selection
-document.querySelectorAll('.scenario-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (isRunning) return;
-    document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedScenario = btn.dataset.scenario;
-  });
-});
-
-const SCENARIO_CONFIG = {
-  quick_test:     { lambda_count: 2,  target_rps: 500,   payload_size_bytes: 1024,  duration_seconds: 60,   read_write_ratio: 0.8, key_distribution: 'uniform',    ramp_pattern: 'step',   client_count: 2, inflight_requests_limit: 500  },
-  gradual_ramp:   { lambda_count: 20, target_rps: 5000,  payload_size_bytes: 1024,  duration_seconds: 1800, read_write_ratio: 0.8, key_distribution: 'uniform',    ramp_pattern: 'linear', client_count: 3, inflight_requests_limit: 1000 },
-  sudden_spike:   { lambda_count: 50, target_rps: 10000, payload_size_bytes: 1024,  duration_seconds: 300,  read_write_ratio: 0.8, key_distribution: 'uniform',    ramp_pattern: 'spike',  client_count: 3, inflight_requests_limit: 1000 },
-  large_payloads: { lambda_count: 10, target_rps: 2000,  payload_size_bytes: 51200, duration_seconds: 600,  read_write_ratio: 0.7, key_distribution: 'uniform',    ramp_pattern: 'step',   client_count: 2, inflight_requests_limit: 1000 },
-  memory_growth:  { lambda_count: 20, target_rps: 10000, payload_size_bytes: 10240, duration_seconds: 900,  read_write_ratio: 0.2, key_distribution: 'sequential', ramp_pattern: 'step',   client_count: 3, inflight_requests_limit: 1000 },
-  hot_key:        { lambda_count: 30, target_rps: 8000,  payload_size_bytes: 1024,  duration_seconds: 300,  read_write_ratio: 0.9, key_distribution: 'zipfian',    ramp_pattern: 'step',   client_count: 5, inflight_requests_limit: 500  },
-};
+let executionStartTime = null;
+let currentExecutionName = null;
+let lastTraceCount = 0;
 
 function ts() {
   const now = new Date();
   return [now.getHours(), now.getMinutes(), now.getSeconds()].map(n => String(n).padStart(2,'0')).join(':') + '.' + String(now.getMilliseconds()).padStart(3,'0');
 }
 
+function tsFromUnix(unixTs) {
+  const d = new Date(unixTs * 1000);
+  return [d.getHours(), d.getMinutes(), d.getSeconds()].map(n => String(n).padStart(2,'0')).join(':') + '.' + String(d.getMilliseconds()).padStart(3,'0');
+}
+
 function log(tag, tagClass, msg) {
   const terminal = document.getElementById('terminal');
   const line = document.createElement('div');
   line.className = 'log-line';
-  line.innerHTML = `<span class="log-ts">${ts()} </span><span class="log-tag ${tagClass}">[${tag}]${' '.repeat(Math.max(1, 8-tag.length))}</span><span class="log-msg">${msg}</span>`;
+  line.innerHTML = `<span class="log-ts">${ts()} </span><span class="log-tag ${tagClass}">[${escHtml(tag)}]${' '.repeat(Math.max(1, 8-tag.length))}</span><span class="log-msg">${escHtml(msg)}</span>`;
   terminal.appendChild(line);
   terminal.scrollTop = terminal.scrollHeight;
 }
 
-function logJson(obj, maxKeys) {
+function logTrace(traceEntry) {
   const terminal = document.getElementById('terminal');
-  const div = document.createElement('div');
-  div.className = 'log-json';
-  const entries = Object.entries(obj);
-  const show = maxKeys ? entries.slice(0, maxKeys) : entries;
-  const lines = show.map(([k, v]) => {
-    const valStr = typeof v === 'string' ? `<span class="json-str">"${escHtml(v)}"</span>`
-                 : typeof v === 'number' ? `<span class="json-num">${v}</span>`
-                 : typeof v === 'boolean' ? `<span class="json-bool">${v}</span>`
-                 : `<span class="json-str">${escHtml(JSON.stringify(v).substring(0, 80))}</span>`;
-    return `  <span class="json-key">"${escHtml(k)}"</span>: ${valStr}`;
-  });
-  let text = '{\n' + lines.join(',\n');
-  if (maxKeys && entries.length > maxKeys) text += `,\n  <span style="color:#6b7280">... ${entries.length - maxKeys} more fields</span>`;
-  text += '\n}';
-  div.innerHTML = text;
-  terminal.appendChild(div);
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  const tag = traceEntry.tag || 'INFO';
+  const tagClass = {
+    'LAMBDA': 'tag-lambda', 'CACHE': 'tag-cache', 'SFN': 'tag-sfn',
+    'API': 'tag-api', 'ERROR': 'tag-error', 'OK': 'tag-ok',
+  }[tag] || 'tag-info';
+  const timestamp = traceEntry.ts ? tsFromUnix(traceEntry.ts) : ts();
+  line.innerHTML = `<span class="log-ts">${timestamp} </span><span class="log-tag ${tagClass}">[${escHtml(tag)}]${' '.repeat(Math.max(1, 8-tag.length))}</span><span class="log-msg">${escHtml(traceEntry.msg || '')}</span>`;
+  terminal.appendChild(line);
   terminal.scrollTop = terminal.scrollHeight;
 }
 
@@ -489,244 +429,184 @@ function copyLog() {
   });
 }
 
-async function runScenario() {
-  if (isRunning) return;
-  isRunning = true;
+// Start tracking an execution
+function startTracking(execName, scenario, config, startedAt) {
+  if (isPolling && currentExecutionName === execName) return;
 
-  const config = SCENARIO_CONFIG[selectedScenario];
-  const totalRps = config.lambda_count * config.target_rps;
+  currentExecutionName = execName;
+  executionStartTime = startedAt || Date.now();
+  isPolling = true;
+  lastTraceCount = 0;
 
-  document.getElementById('runBtn').disabled = true;
-  document.getElementById('liveDot').classList.add('live');
-  document.getElementById('infoStatus').textContent = 'Starting...';
+  // Clear the "no execution" placeholder
+  const noExec = document.getElementById('noExecution');
+  if (noExec) noExec.remove();
+
+  // Update sidebar
+  document.getElementById('infoStatus').textContent = 'Running';
   document.getElementById('infoStatus').className = 'value running';
+  document.getElementById('infoScenario').textContent = (scenario || '').replace(/_/g, ' ');
+  document.getElementById('infoExecName').textContent = execName;
+  document.getElementById('liveDot').classList.add('live');
+  document.getElementById('liveMetricsSection').style.display = '';
 
-  startTime = Date.now();
+  // Initial log
+  clearTerminal();
+  logPhase('EXECUTION TRACE');
+  logDivider();
+  log('SYS', 'tag-info', `Tracking execution: ${execName}`);
+  log('SYS', 'tag-info', `Scenario: ${(scenario || '').replace(/_/g, ' ').toUpperCase()}`);
+  if (config) {
+    const totalRps = (config.lambda_count || config.target_rps || 0) * (config.target_rps || 0);
+    log('SYS', 'tag-info', `Target: ${totalRps.toLocaleString()} total RPS | ${config.lambda_count || '?'} Lambdas | ${((config.payload_size_bytes || 1024) / 1024).toFixed(0)}KB payload`);
+    log('SYS', 'tag-info', `Duration: ${config.duration_seconds || '?'}s | Pattern: ${config.ramp_pattern || 'step'} | Clients: ${config.client_count || '?'}/Lambda`);
+  }
+  logDivider();
+
+  // Elapsed timer
   elapsedTimer = setInterval(() => {
-    document.getElementById('infoElapsed').textContent = formatElapsed(Date.now() - startTime);
+    document.getElementById('infoElapsed').textContent = formatElapsed(Date.now() - executionStartTime);
   }, 500);
 
-  clearTerminal();
+  // Live data poll (trace + metrics from ElastiCache)
+  pollLive();
+  livePollTimer = setInterval(pollLive, 4000);
 
-  // Phase 1: Explain what we're about to do
-  logPhase('PHASE 1: Initiating Test');
-  logDivider();
-  log('SYS', 'tag-info', `Scenario: ${selectedScenario.replace(/_/g, ' ').toUpperCase()}`);
-  log('SYS', 'tag-info', `Total target: ${totalRps.toLocaleString()} RPS across ${config.lambda_count} Lambdas`);
-  log('SYS', 'tag-info', `Payload: ${(config.payload_size_bytes / 1024).toFixed(0)} KB | Duration: ${config.duration_seconds}s | Pattern: ${config.ramp_pattern}`);
-  log('SYS', 'tag-info', `GLIDE clients per Lambda: ${config.client_count} | Inflight limit: ${config.inflight_requests_limit}`);
-  log('SYS', 'tag-info', `Read/Write ratio: ${(config.read_write_ratio * 100).toFixed(0)}% reads / ${((1 - config.read_write_ratio) * 100).toFixed(0)}% writes`);
-  logDivider();
-
-  // Phase 2: API call
-  logPhase('PHASE 2: Calling API');
-  logDivider();
-  const reqBody = { scenario: selectedScenario, config };
-  log('API', 'tag-api', `POST /api/executions`);
-  log('API', 'tag-api', `Request body:`);
-  logJson(reqBody, 4);
-
-  let executionName, executionArn;
-  try {
-    const resp = await fetch(`${API_BASE}/executions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(reqBody),
-    });
-    const data = await resp.json();
-
-    if (!resp.ok) {
-      log('ERROR', 'tag-error', `API returned ${resp.status}: ${data.error || resp.statusText}`);
-      finish(false);
-      return;
-    }
-
-    executionName = data.execution_name;
-    executionArn = data.execution_arn;
-
-    log('API', 'tag-api', `Response: ${resp.status} OK`);
-    logJson({ execution_name: executionName, execution_arn: executionArn, scenario: data.scenario }, 3);
-    document.getElementById('infoExecName').textContent = executionName;
-  } catch (e) {
-    log('ERROR', 'tag-error', `Network error: ${e.message}`);
-    finish(false);
-    return;
-  }
-
-  // Phase 3: Step Functions
-  logDivider();
-  logPhase('PHASE 3: Step Functions Execution');
-  logDivider();
-  log('SFN', 'tag-sfn', `State machine started: ecoffsite-scaling-demo`);
-  log('SFN', 'tag-sfn', `Execution: ${executionName}`);
-  log('SFN', 'tag-sfn', `State: [Choice] pre_populate? -> ${config.read_write_ratio < 1 ? 'Yes, seeding keys first' : 'No, skipping'}`);
-
-  await sleep(1500);
-  log('SFN', 'tag-sfn', `State: [BuildWorkerConfigs] generating array [0..${config.lambda_count - 1}]`);
-
-  await sleep(1000);
-  log('SFN', 'tag-sfn', `State: [GenerateLoad] Map state -> fan-out ${config.lambda_count} Lambdas (max concurrency: 200)`);
-
-  logDivider();
-  logPhase('PHASE 4: Lambda Fleet Executing');
-  logDivider();
-
-  for (let i = 0; i < Math.min(config.lambda_count, 5); i++) {
-    log('LAMBDA', 'tag-lambda', `Worker ${i} invoked: target_rps=${config.target_rps}, payload=${(config.payload_size_bytes/1024).toFixed(0)}KB, pattern=${config.ramp_pattern}`);
-  }
-  if (config.lambda_count > 5) {
-    log('LAMBDA', 'tag-lambda', `... and ${config.lambda_count - 5} more workers`);
-  }
-
-  log('CACHE', 'tag-cache', `Connecting to: ecoffsite-demo-y2t7ss.serverless.use2.cache.amazonaws.com:6379`);
-  log('CACHE', 'tag-cache', `TLS handshake + GlideClusterClient initialization (${config.client_count} clients per Lambda)`);
-  log('CACHE', 'tag-cache', `Total connections: ${config.lambda_count} Lambdas x ${config.client_count} clients = ${config.lambda_count * config.client_count} multiplexed connections`);
-
-  document.getElementById('infoStatus').textContent = 'Running';
-
-  // Phase 5: Polling
-  logDivider();
-  logPhase('PHASE 5: Polling for Completion');
-  logDivider();
-  log('SYS', 'tag-info', `Estimated duration: ${config.duration_seconds}s + overhead`);
-  log('SYS', 'tag-info', `Polling GET /api/executions/${executionName} every 5s...`);
-
-  let pollCount = 0;
-  let finalResult = null;
-
-  while (true) {
-    await sleep(5000);
-    pollCount++;
-
-    try {
-      const statusResp = await fetch(`${API_BASE}/executions/${executionName}`);
-      const statusData = await statusResp.json();
-      const elapsed = formatElapsed(Date.now() - startTime);
-
-      if (statusData.status === 'SUCCEEDED') {
-        log('API', 'tag-api', `Poll #${pollCount}: SUCCEEDED (${elapsed})`);
-        finalResult = statusData.results;
-        break;
-      } else if (statusData.status === 'FAILED' || statusData.status === 'TIMED_OUT' || statusData.status === 'ABORTED') {
-        log('ERROR', 'tag-error', `Poll #${pollCount}: ${statusData.status}`);
-        if (statusData.error) log('ERROR', 'tag-error', `Error: ${statusData.error}`);
-        if (statusData.cause) log('ERROR', 'tag-error', `Cause: ${statusData.cause}`);
-        finish(false);
-        return;
-      } else {
-        // Still running - show progress
-        const pct = Math.min(95, Math.round((Date.now() - startTime) / (config.duration_seconds * 1000 + 30000) * 100));
-        log('API', 'tag-api', `Poll #${pollCount}: RUNNING (${elapsed}) ~${pct}%`);
-
-        // Add contextual messages about what's happening
-        if (pollCount === 1) {
-          log('LAMBDA', 'tag-lambda', `Workers sending ${config.ramp_pattern === 'linear' ? 'linearly ramping' : config.ramp_pattern === 'spike' ? 'spiking' : 'constant'} traffic...`);
-          log('CACHE', 'tag-cache', `ElastiCache Serverless processing ${totalRps.toLocaleString()} target RPS...`);
-        }
-        if (pollCount === 3) {
-          log('CACHE', 'tag-cache', `Auto-scaling: initial burst headroom 25-35%, capacity doubles every ~10 min`);
-        }
-        if (pollCount === 5) {
-          log('LAMBDA', 'tag-lambda', `Workers collecting 18-bucket latency histograms per 5s window...`);
-        }
-        if (pollCount % 6 === 0) {
-          log('CACHE', 'tag-cache', `ElastiCache Serverless scaling in progress... (${elapsed} elapsed)`);
-        }
-      }
-    } catch (e) {
-      log('API', 'tag-api', `Poll #${pollCount}: network error - ${e.message}, retrying...`);
-    }
-  }
-
-  // Phase 6: Results
-  logDivider();
-  logPhase('PHASE 6: Aggregating Results');
-  logDivider();
-  log('SFN', 'tag-sfn', `State: [AggregateResults] invoking aggregator Lambda`);
-  log('SFN', 'tag-sfn', `Aggregator receives ${config.lambda_count} worker payloads`);
-  log('SFN', 'tag-sfn', `Merging latency histograms element-wise across all workers...`);
-  log('SFN', 'tag-sfn', `Computing global p50/p90/p99 from merged histogram (NOT averaging percentiles)`);
-  log('SFN', 'tag-sfn', `Estimating ECPU: success_count x ceil(payload_bytes / 1024)`);
-  log('SFN', 'tag-sfn', `Writing aggregated results to S3`);
-
-  if (finalResult) {
-    logDivider();
-    logPhase('PHASE 7: Results');
-    logDivider();
-
-    const ts_data = finalResult.time_series || [];
-    const summary = finalResult.summary || {};
-    const events = finalResult.events || [];
-
-    log('RESULT', 'tag-result', `Received ${ts_data.length} time-series data points`);
-    log('RESULT', 'tag-result', `Detected ${events.length} scaling events`);
-
-    if (ts_data.length > 0) {
-      log('RESULT', 'tag-result', `Sample data point (last window):`);
-      const last = ts_data[ts_data.length - 1];
-      logJson({
-        actual_rps: last.actual_rps,
-        p50_ms: last.p50_ms,
-        p90_ms: last.p90_ms,
-        p99_ms: last.p99_ms,
-        ecpu_demand: last.ecpu_demand,
-        throttle_pct: last.throttle_pct,
-        active_clients: last.active_clients,
-      });
-    }
-
-    // Show events
-    if (events.length > 0) {
-      logDivider();
-      log('RESULT', 'tag-result', 'Scaling events:');
-      for (const ev of events.slice(0, 10)) {
-        const evTag = ev.type === 'throttle_start' || ev.type === 'latency_spike' ? 'tag-error' : 'tag-ok';
-        log('EVENT', evTag, `[t=${ev.timestamp_s ? ev.timestamp_s - (ts_data[0]?.timestamp_s || 0) : '?'}s] ${ev.message || ev.type}`);
-      }
-      if (events.length > 10) log('EVENT', 'tag-info', `... and ${events.length - 10} more events`);
-    }
-
-    // Summary box
-    logDivider();
-    log('OK', 'tag-ok', 'Test completed successfully!');
-
-    const summaryData = {};
-    if (summary.peak_rps) summaryData['Peak RPS'] = summary.peak_rps.toLocaleString();
-    if (summary.avg_p50_ms) summaryData['Avg p50'] = summary.avg_p50_ms.toFixed(2) + ' ms';
-    if (summary.avg_p99_ms) summaryData['Avg p99'] = summary.avg_p99_ms.toFixed(2) + ' ms';
-    if (summary.peak_p99_ms) summaryData['Peak p99'] = summary.peak_p99_ms.toFixed(2) + ' ms';
-    if (summary.total_throttled !== undefined) summaryData['Total Throttled'] = summary.total_throttled.toLocaleString();
-    if (summary.total_cost_usd) summaryData['Total Cost'] = '$' + summary.total_cost_usd.toFixed(6);
-    summaryData['Data Points'] = String(ts_data.length);
-    summaryData['Duration'] = formatElapsed(Date.now() - startTime);
-
-    if (Object.keys(summaryData).length > 0) {
-      logSummary(summaryData);
-    }
-
-    log('OK', 'tag-ok', `View charts: `);
-    const link = document.createElement('a');
-    link.href = 'index.html';
-    link.textContent = 'Open Dashboard to see charts';
-    link.style.cssText = 'color:#818cf8;text-decoration:underline;margin-left:180px;display:block;padding:4px 0';
-    document.getElementById('terminal').appendChild(link);
-  }
-
-  finish(true);
+  // Status poll (Step Functions completion)
+  statusPollTimer = setInterval(pollStatus, 6000);
 }
 
-function finish(success) {
-  isRunning = false;
+async function pollLive() {
+  if (!currentExecutionName) return;
+  try {
+    const resp = await fetch(`${API_BASE}/live/${currentExecutionName}`);
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    // Show new trace entries
+    const trace = data.trace || [];
+    if (trace.length > lastTraceCount) {
+      for (let i = lastTraceCount; i < trace.length; i++) {
+        logTrace(trace[i]);
+      }
+      lastTraceCount = trace.length;
+    }
+
+    // Update live metrics sidebar
+    const agg = data.aggregate;
+    if (agg && agg.actual_rps) {
+      document.getElementById('liveRps').textContent = agg.actual_rps.toLocaleString();
+      document.getElementById('liveWorkers').textContent = `${data.workers_reporting}/${data.lambda_count}`;
+      document.getElementById('liveP50').textContent = (agg.p50_ms || 0).toFixed(1) + 'ms';
+      document.getElementById('liveP99').textContent = (agg.p99_ms || 0).toFixed(1) + 'ms';
+      document.getElementById('liveThrottle').textContent = (agg.throttle_pct || 0) + '%';
+      document.getElementById('liveClients').textContent = (agg.active_clients || 0).toLocaleString();
+    }
+  } catch (e) { /* non-critical */ }
+}
+
+async function pollStatus() {
+  if (!currentExecutionName) return;
+  try {
+    const resp = await fetch(`${API_BASE}/executions/${currentExecutionName}`);
+    if (!resp.ok) return;
+    const data = await resp.json();
+
+    if (data.status === 'SUCCEEDED') {
+      stopTracking(true);
+      logDivider();
+      logPhase('EXECUTION COMPLETED');
+      logDivider();
+      log('OK', 'tag-ok', 'Test completed successfully!');
+
+      if (data.results) {
+        const summary = data.results.summary || {};
+        const summaryData = {};
+        if (summary.peak_rps) summaryData['Peak RPS'] = summary.peak_rps.toLocaleString();
+        if (summary.avg_p50_ms) summaryData['Avg p50'] = summary.avg_p50_ms.toFixed(2) + ' ms';
+        if (summary.avg_p99_ms) summaryData['Avg p99'] = summary.avg_p99_ms.toFixed(2) + ' ms';
+        if (summary.total_throttled !== undefined) summaryData['Throttled'] = summary.total_throttled.toLocaleString();
+        if (summary.total_cost_usd) summaryData['Cost'] = '$' + summary.total_cost_usd.toFixed(6);
+        summaryData['Duration'] = document.getElementById('infoElapsed').textContent;
+        if (Object.keys(summaryData).length > 0) logSummary(summaryData);
+      }
+
+      log('OK', 'tag-ok', 'View charts on the Dashboard');
+    } else if (data.status === 'FAILED' || data.status === 'TIMED_OUT' || data.status === 'ABORTED') {
+      stopTracking(false);
+      logDivider();
+      log('ERROR', 'tag-error', `Execution ${data.status}`);
+      if (data.error) log('ERROR', 'tag-error', `Error: ${data.error}`);
+      if (data.cause) log('ERROR', 'tag-error', `Cause: ${data.cause}`);
+    }
+  } catch (e) { /* retry next poll */ }
+}
+
+function stopTracking(success) {
+  isPolling = false;
+  clearInterval(livePollTimer);
+  clearInterval(statusPollTimer);
   clearInterval(elapsedTimer);
-  document.getElementById('runBtn').disabled = false;
+  livePollTimer = null;
+  statusPollTimer = null;
+
   document.getElementById('liveDot').classList.remove('live');
   document.getElementById('infoStatus').textContent = success ? 'Completed' : 'Failed';
   document.getElementById('infoStatus').className = success ? 'value running' : 'value failed';
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+// On page load: check localStorage and /api/current for active execution
+window.addEventListener('DOMContentLoaded', async () => {
+  // Check localStorage first (set by Dashboard)
+  let execInfo = null;
+  try {
+    const stored = localStorage.getItem('ecoffsite_execution');
+    if (stored) execInfo = JSON.parse(stored);
+  } catch (e) {}
+
+  // If localStorage has a running execution, use it
+  if (execInfo && execInfo.status === 'RUNNING' && execInfo.execution_name) {
+    startTracking(execInfo.execution_name, execInfo.scenario, execInfo.config, execInfo.started_at);
+    return;
+  }
+
+  // Otherwise check /api/current
+  try {
+    const resp = await fetch(`${API_BASE}/current`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.execution_name && data.status === 'RUNNING') {
+        startTracking(data.execution_name, data.scenario, data.config, data.started_at ? data.started_at * 1000 : Date.now());
+        return;
+      }
+    }
+  } catch (e) {}
+
+  // If we have a completed execution in localStorage, show its info (read-only)
+  if (execInfo && execInfo.execution_name) {
+    const noExec = document.getElementById('noExecution');
+    if (noExec) noExec.remove();
+    document.getElementById('infoScenario').textContent = (execInfo.scenario || '').replace(/_/g, ' ');
+    document.getElementById('infoExecName').textContent = execInfo.execution_name;
+    document.getElementById('infoStatus').textContent = execInfo.status || 'Completed';
+    document.getElementById('infoStatus').className = execInfo.status === 'SUCCEEDED' ? 'value running' : 'value idle';
+
+    log('SYS', 'tag-info', `Last execution: ${execInfo.execution_name}`);
+    log('SYS', 'tag-info', `Status: ${execInfo.status || 'Unknown'}`);
+    log('SYS', 'tag-info', 'Start a new test from the Dashboard to see live traces.');
+  }
+});
+
+// Also listen for storage events (Dashboard updates localStorage while Console is open)
+window.addEventListener('storage', (e) => {
+  if (e.key !== 'ecoffsite_execution') return;
+  try {
+    const execInfo = JSON.parse(e.newValue);
+    if (execInfo && execInfo.status === 'RUNNING' && execInfo.execution_name) {
+      startTracking(execInfo.execution_name, execInfo.scenario, execInfo.config, execInfo.started_at);
+    }
+  } catch (err) {}
+});
   </script>
 </body>
 </html>

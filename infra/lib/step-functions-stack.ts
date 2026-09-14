@@ -57,7 +57,9 @@ export class StepFunctionsStack extends cdk.Stack {
       itemsPath: "$.worker_configs",
       itemSelector: {
         "worker_id.$": "States.Format('worker-{}', $$.Map.Item.Value)",
+        "execution_name.$": "$$.Execution.Name",
         "scenario.$": "$.scenario",
+        "lambda_count.$": "$.config.lambda_count",
         "cache_endpoint.$": "$.config.cache_endpoint",
         "cache_port.$": "$.config.cache_port",
         "target_rps.$": "$.config.target_rps",

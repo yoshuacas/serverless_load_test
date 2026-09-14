@@ -46,6 +46,7 @@ async def run_traffic(
     clients: list[GlideClusterClient],
     config: dict,
     collector: MetricsCollector,
+    on_snapshot=None,
 ):
     """Main traffic loop. Drives operations at target RPS using asyncio concurrency."""
     duration = config["duration_seconds"]
@@ -125,7 +126,11 @@ async def run_traffic(
             tasks.append(task)
 
         # Flush metrics window if needed
-        collector.maybe_flush()
+        if collector.maybe_flush() and on_snapshot:
+            try:
+                await on_snapshot(collector.time_series[-1])
+            except Exception:
+                pass  # Don't let progress reporting break the test
 
         # Clean up completed tasks periodically to avoid memory growth
         if len(tasks) > 10_000:
